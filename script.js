@@ -1,4 +1,5 @@
 
+let correctWordCount = 0;
 const recordBtn = document.querySelector(".record"),
   result = document.querySelector(".result"),
   downloadBtn = document.querySelector(".download"),
@@ -14,8 +15,6 @@ let SpeechRecognition =
   recording = false;
 
 function speechToText() {
-  x = 0;
-  y=0;
   try {
     recognition = new SpeechRecognition();
     recognition.lang = "en";
@@ -29,9 +28,9 @@ function speechToText() {
       if (event.results[0].isFinal) {
         if(hiddenText.innerText.trim().toLowerCase() == speechResult.toLowerCase()){
           // alert("Correct Answer");
-          x = x+1;
-          popup(1,console.log(x));
-          
+          correctWordCount++;
+          popup(1,console.log(correctWordCount));
+          updateCorrectWordCount(correctWordCount);
 
         }else{
           popup(0,'Wrong Answer');
@@ -125,4 +124,8 @@ function popup(a=0,b='',c=''){
   // alert();
   $('.popup').html(ot);
   $('.popup').show();
+}
+
+function updateCorrectWordCount(count){
+  document.getElementById("correctWordCount").innerHTML = count;
 }
