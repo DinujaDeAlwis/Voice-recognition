@@ -50,10 +50,10 @@ window.onload = function () {
 
       if (hiddenText.innerText.trim().toLowerCase() == lastWord.toLowerCase()) {
         correctWordCount++;
-        popup('success', 'Correct Answer');
+        popup('success', 'Correct Answer :' + lastWord);
         updateCorrectWordCount(correctWordCount);
       } else {
-        popup('error', 'Wrong Answer');
+        popup('danger', 'Wrong Answer');
       }
 
       result.innerHTML += " " + speechResult;
@@ -73,15 +73,15 @@ window.onload = function () {
   recognition.onerror = (event) => {
     stopRecording();
     if (event.error === "no-speech") {
-      popup('error', 'No speech was detected. Stopping...');
+      popup('danger', 'No speech was detected. Stopping...');
     } else if (event.error === "audio-capture") {
-      popup('error', 'No microphone was found. Ensure that a microphone is installed.');
+      popup('danger', 'No microphone was found. Ensure that a microphone is installed.');
     } else if (event.error === "not-allowed") {
-      popup('error', 'Permission to use microphone is blocked.');
+      popup('danger', 'Permission to use microphone is blocked.');
     } else if (event.error === "aborted") {
-      popup('error', 'Listening Stopped.');
+      popup('danger', 'Listening Stopped.');
     } else {
-      popup('error', 'Error occurred in recognition:' + event.error);
+      popup('danger', 'Error occurred in recognition:' + event.error);
     }
   };
 
@@ -129,26 +129,37 @@ window.onload = function () {
 
   // helper functions
   function popup(variant, msg) {
+    showToast(msg, variant);
     const popupDiv = document.getElementById("popup");
     popupDiv.innerHTML = msg;
-    if (variant == 'success') {
-      popupDiv.classList.add("alert-success");
-    } else if (variant == 'error') {
-      popupDiv.classList.add("alert-danger");
-    } else if (variant == 'warning') {
-      popupDiv.classList.add("alert-warning");
-    } else{
-      popupDiv.classList.add("alert-info");
-    }
 
-    setTimeout(function () {
-      popupDiv.classList.remove("alert-success");
-      popupDiv.classList.remove("alert-danger");
-      popupDiv.classList.remove("alert-warning");
-      popupDiv.classList.remove("alert-info");
-      popupDiv.innerHTML = "";
-    }, 3000);
+    popupDiv.classList.remove("alert-success");
+    popupDiv.classList.remove("alert-danger");
+    popupDiv.classList.remove("alert-warning");
+    popupDiv.classList.remove("alert-info");
+
+    popupDiv.classList.add("alert-" + variant);
   }
+
+  function showToast(message, variant) {
+    const toastContainer = document.getElementById('toastContainer');
+
+    const toast = document.createElement('div');
+    toast.className = `rounded-pill text-white bg-${variant}`;
+    toast.style.width = '250px';
+
+    toast.innerHTML = `
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+
+    toastContainer.appendChild(toast)
+
+    setTimeout(() => {
+      toastContainer.removeChild(toast);
+    }, 3000);
+}
 
   function updateCorrectWordCount(count) {
     document.getElementById("correctWordCount").innerHTML = count;
