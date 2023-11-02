@@ -1,131 +1,160 @@
+window.onload = function () {
+  let correctWordCount = 0;
+  let recording = false;
 
-let correctWordCount = 0;
-const recordBtn = document.querySelector(".record"),
-  result = document.querySelector(".result"),
-  downloadBtn = document.querySelector(".download"),
-  inputLanguage = document.querySelector("#language"),
-  clearBtn = document.querySelector(".clear"),
-  hiddenText = document.getElementById("hiddenText"),
-  ListeningIndicator = document.getElementById("ListeningIndicator");
-
-
-let SpeechRecognition =
+  let SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition,
-  recognition,
-  recording = false;
+    recognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = "en";
+  recognition.interimResults = true;
 
-function speechToText() {
-  try {
-    recognition = new SpeechRecognition();
-    recognition.lang = "en";
-    recognition.interimResults = true;
+
+  const recordBtn = document.querySelector(".record");
+  const result = document.querySelector(".result"),
+    downloadBtn = document.querySelector(".download"),
+    inputLanguage = document.querySelector("#language"),
+    clearBtn = document.querySelector(".clear"),
+    hiddenText = document.getElementById("hiddenText"),
+    startIndicator = document.getElementById("startIndicator"),
+    ListeningIndicator = document.getElementById("ListeningIndicator");
+
+    recognition.onsoundstart = ()=>{
+      ListeningIndicator.classList.remove("d-none");
+      ListeningIndicator.classList.add("d-block");
+    }
+
+    recognition.onsoundend = ()=>{
+      ListeningIndicator.classList.add("d-none");
+      ListeningIndicator.classList.remove("d-block");
+    }
+
+  recognition.onstart = () => {
     recordBtn.classList.add("recording");
-    ListeningIndicator.innerHTML = "Listening...";
-    recognition.start();
-    recognition.onresult = (event) => {
-      const speechResult = event.results[0][0].transcript;
-      //detect when intrim results
-      if (event.results[0].isFinal) {
-        if(hiddenText.innerText.trim().toLowerCase() == speechResult.toLowerCase()){
-          // alert("Correct Answer");
-          correctWordCount++;
-          popup(1,console.log(correctWordCount));
-          updateCorrectWordCount(correctWordCount);
+    startIndicator.innerHTML = "Listening...";
+  };
 
-        }else{
-          popup(0,'Wrong Answer');
-        }
-        result.innerHTML += " " + speechResult;
-        result.querySelector("p").remove();
-        clearBtn.click();
-      } else {
-        //creative p with class interim if not already there
-        if (!document.querySelector(".interim")) {
-          const interim = document.createElement("p");
-          interim.classList.add("interim");
-          result.appendChild(interim);
-        }
-        //update the interim p with the speech result
-        document.querySelector(".interim").innerHTML = " " + speechResult;
-      }
-      downloadBtn.disabled = false;
-    };
-    recognition.onspeechend = () => {
-      speechToText();
-    };
-    recognition.onerror = (event) => {
-      stopRecording();
-      if (event.error === "no-speech") {
-        popup(0,'No speech was detected. Stopping...');
-      } else if (event.error === "audio-capture") {
-        popup(0,'No microphone was found. Ensure that a microphone is installed.');
-      } else if (event.error === "not-allowed") {
-        popup(0,'Permission to use microphone is blocked.');
-      } else if (event.error === "aborted") {
-        popup(0,'Listening Stopped.');
-      } else {
-        popup(0,'Error occurred in recognition: " + event.erro');
-      }
-    };
-  } catch (error) {
-    recording = false;
-
-    console.log(error);
-  }
-}
-
-recordBtn.addEventListener("click", () => {
-  if (!recording) {
+  recognition.onend = () => {
     speechToText();
-    recording = true;
-  } else {
+  };
+
+  recognition.onresult = (event) => {
+    const speechResult = event.results[0][0].transcript;
+
+    if (event.results[0].isFinal) {
+
+      //split speech result into words
+      const words = speechResult.split(" ");
+      //last word
+      const lastWord = words[words.length - 1];
+
+      if (hiddenText.innerText.trim().toLowerCase() == lastWord.toLowerCase()) {
+        correctWordCount++;
+        popup('success', 'Correct Answer');
+        updateCorrectWordCount(correctWordCount);
+      } else {
+        popup('error', 'Wrong Answer');
+      }
+
+      result.innerHTML += " " + speechResult;
+      result.querySelector("p").remove();
+    } else {
+      //creative p with class interim if not already there
+      if (!document.querySelector(".interim")) {
+        const interim = document.createElement("p");
+        interim.classList.add("interim");
+        result.appendChild(interim);
+      }
+      //update the interim p with the speech result
+      document.querySelector(".interim").innerHTML = " " + speechResult;
+    }
+  };
+
+  recognition.onerror = (event) => {
     stopRecording();
+    if (event.error === "no-speech") {
+      popup('error', 'No speech was detected. Stopping...');
+    } else if (event.error === "audio-capture") {
+      popup('error', 'No microphone was found. Ensure that a microphone is installed.');
+    } else if (event.error === "not-allowed") {
+      popup('error', 'Permission to use microphone is blocked.');
+    } else if (event.error === "aborted") {
+      popup('error', 'Listening Stopped.');
+    } else {
+      popup('error', 'Error occurred in recognition:' + event.error);
+    }
+  };
+
+
+  async function speechToText() {
+    try {
+      if (!recording) {
+        await recognition.start();
+        startIndicator.innerHTML = "Listening...";
+      }else {
+        startIndicator.innerHTML = "";
+        recognition.stop();
+      }
+    } catch (error) {
+      recording = false;
+      console.log(error);
+      startIndicator.innerHTML = "Error occurred in recognition:" + JSON.stringify(error);
+    }
   }
-});
 
-function stopRecording() {
-  recognition.stop();
-  ListeningIndicator.innerHTML = "Start Listening";
-  recordBtn.classList.remove("recording");
-  recording = false;
+  function download() {
+    const text = result.innerText;
+    const filename = "speech.txt";
+
+    const element = document.createElement("a");
+    element.setAttribute(
+      "href",
+      "data:text/plain;charset=utf-8," + encodeURIComponent(text)
+    );
+    element.setAttribute("download", filename);
+    element.style.display = "none";
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }
+
+  // clearBtn.addEventListener("click", () => {
+  //   107
+  //   result.innerHTML = "";
+  //   downloadBtn.disabled = true;
+  // });
+
+  recordBtn.addEventListener("click",() => speechToText());
+
+
+  // helper functions
+  function popup(variant, msg) {
+    const popupDiv = document.getElementById("popup");
+    popupDiv.innerHTML = msg;
+    if (variant == 'success') {
+      popupDiv.classList.add("alert-success");
+    } else if (variant == 'error') {
+      popupDiv.classList.add("alert-danger");
+    } else if (variant == 'warning') {
+      popupDiv.classList.add("alert-warning");
+    } else{
+      popupDiv.classList.add("alert-info");
+    }
+
+    setTimeout(function () {
+      popupDiv.classList.remove("alert-success");
+      popupDiv.classList.remove("alert-danger");
+      popupDiv.classList.remove("alert-warning");
+      popupDiv.classList.remove("alert-info");
+      popupDiv.innerHTML = "";
+    }, 3000);
+  }
+
+  function updateCorrectWordCount(count) {
+    document.getElementById("correctWordCount").innerHTML = count;
+  }
+
 }
 
-function download() {
-  const text = result.innerText;
-  const filename = "speech.txt";
-
-  const element = document.createElement("a");
-  element.setAttribute(
-    "href",
-    "data:text/plain;charset=utf-8," + encodeURIComponent(text)
-  );
-  element.setAttribute("download", filename);
-  element.style.display = "none";
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-}
-
-// downloadBtn.addEventListener("click", download);
-// alert();
-
-clearBtn.addEventListener("click", () => {107
-  result.innerHTML = "";
-  downloadBtn.disabled = true;
-});
 
 
-function popup(a=0,b='',c=''){
-  var ot='';
-  var mg=(a===1) ? 'bx1-g' :'bx1-r';
-  ot='<div class="overlay"><div class="bx1 '+mg+'"><div class="msg-x">x</div><div class="msg">Success! +++ message sent successfully.</div></div></div>';
-  ot='<div class="overlay"><div class="bx1 '+mg+'"><div class="msg-x">x</div>';
-  ot+='<div class="msg">'+b+'</div></div></div>';
-  // alert();
-  $('.popup').html(ot);
-  $('.popup').show();
-}
-
-function updateCorrectWordCount(count){
-  document.getElementById("correctWordCount").innerHTML = count;
-}

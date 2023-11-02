@@ -5,7 +5,6 @@ function speakWord(word) {
 }
 
 $(document).ready(function () {
-
   var currentIndex = 0;
   var texts = ["SHOP", "SHIP", "SHIFT","Share"];
 
@@ -96,7 +95,6 @@ $(document).ready(function () {
       $('.popup').hide();
     }
   });
-
 
 });
 
